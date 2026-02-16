@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import axios from 'axios'
+import api from '../../api/axios';
 import { FaSearch, FaSortUp, FaSortDown, FaSort } from 'react-icons/fa'
+import BookConditionBadge from '../BookConditionBadge';
 
 function BorrowHistoryModal({ isOpen, onClose }) {
   const [loans, setLoans] = useState([]);
@@ -79,7 +80,7 @@ function BorrowHistoryModal({ isOpen, onClose }) {
   const fetchReturnedLoans = async () => {
     try {
       setIsLoading(true);
-      const response = await axios.get('http://localhost:3000/api/loans');
+      const response = await api.get('/loans');
       // Filter only returned loans
       const returnedLoans = response.data.filter(loan => loan.status === 'Returned');
       setLoans(returnedLoans);
@@ -166,7 +167,8 @@ function BorrowHistoryModal({ isOpen, onClose }) {
 
           {/* Table */}
           {!isLoading && !error && (
-            <div className='overflow-hidden shadow-md rounded-lg border border-gray-200'>              <table className='min-w-full bg-white'>
+            <div className='overflow-hidden shadow-md rounded-lg border border-gray-200'>              
+            <table className='min-w-full bg-white'>
                 <thead className='bg-gray-800 text-white sticky top-0 z-10'>
                   <tr>
                     <th 
@@ -186,6 +188,7 @@ function BorrowHistoryModal({ isOpen, onClose }) {
                     <th className='px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider'>Expected Return</th>
                     <th className='px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider'>No. of Copies</th>
                     <th className='px-6 py-4 text-center text-sm font-semibold uppercase tracking-wider'>Rating</th>
+                    <th className='px-6 py-4 text-center text-sm font-semibold uppercase tracking-wider'>Condition</th>
                   </tr>
                 </thead>
                 <tbody className='divide-y divide-gray-200'>
@@ -207,6 +210,10 @@ function BorrowHistoryModal({ isOpen, onClose }) {
                           ) : (
                             <span className='text-gray-400'>--</span>
                           )}
+                        </td>                        <td className='px-6 py-4 text-center'>
+                          <div className='flex justify-center'>
+                            <BookConditionBadge condition={loan.book_condition} />
+                          </div>
                         </td>
                       </tr>
                     ))

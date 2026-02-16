@@ -1,16 +1,20 @@
 import { useState, useEffect, use } from 'react'
 import { Routes, Route, useNavigate } from "react-router-dom";
-import axios from 'axios';
+import api from './api/axios';
 import BookManageModal from './components/modal forms/BookManageModal';
 import BookManagement from './pages/BookManagement';
 import BookCatalog from './pages/BookCatalog';
+import Dashboard from './pages/Dashboard';
 import Layout from './layout/Outlet';
 import RolePick  from './auth/RolePick';
 import BorrowedBooks from './pages/BorrowedBooks';
 import Login from './auth/Login';
+import Register from './auth/Register';
 import RouteProtection from './routes/RouteProtection';
 import BorrowingActivities from './pages/BorrowingActivities';
+import WalkInBorrowing from './pages/WalkInBorrowing';
 import Favorites from './pages/Favorites';
+import UserManagement from './pages/UserManagement';
 
 function App() {
 
@@ -21,7 +25,8 @@ function App() {
   const [modalMode, setModalMode] = useState('add');
   const [bookToEdit, setBookToEdit] = useState(null);
   const [currentLoginRole, setCurrentLoginRole] = useState(null);
-  const [userRole, setUserRole] = useState(null); 
+  const [userRole, setUserRole] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
 
 
@@ -36,9 +41,18 @@ function App() {
         setCurrentLoginRole(userData.role === 'staff' ? 'Staff' : 'Customer');
         setUserRole(userData.role); // Set 'staff' or 'customer'
         
+        // Set admin status if user is staff
+        if (userData.role === 'staff' && userData.user?.is_admin) {
+          setIsAdmin(true);
+        }
+        
         // Navigate based on role
         if (userData.role === 'staff') {
-          navigate('/book_management');
+          if (userData.user?.is_admin) {
+            navigate('/dashboard');
+          } else {
+            navigate('/walk_in_borrowing');
+          }
         } else {
           navigate('/book_catalog');
         }
@@ -68,7 +82,7 @@ function App() {
 
   const fetchBooks = async () => {
     try {
-      const response = await axios.get('http://localhost:3000/api/books');
+      const response = await api.get('/books');
       setBooks(response.data);
 
     } catch (error) {
@@ -81,7 +95,6 @@ function App() {
   {/*This handles the routing of Login for Staff and customer*/}
   
   const handleRoleSelection = (role) => {
-    console.log('Role selected:', role); // Debug log
     
     if (role === 'staff') {
       setCurrentLoginRole('Staff');
@@ -89,7 +102,6 @@ function App() {
       setCurrentLoginRole('Customer');
     }
     
-    console.log('Navigating to login...'); // Debug log
     navigate('/login');
   }
 
@@ -102,6 +114,7 @@ function App() {
     localStorage.removeItem('isLoggedIn');
     setCurrentLoginRole(null);
     setUserRole(null);
+    setIsAdmin(false);
     navigate("/");
   }
   
@@ -124,14 +137,27 @@ function App() {
 
       <Routes>
         <Route path="/" element={<RolePick handleRoleSelection={handleRoleSelection} />} />
-        <Route path="/login" element={<Login currentLoginRole={currentLoginRole} clearRole={clearRole} setUserRole={setUserRole} />} />
+        <Route path="/login" element={<Login currentLoginRole={currentLoginRole} clearRole={clearRole} setUserRole={setUserRole} setIsAdmin={setIsAdmin} />} />
+        <Route path="/register" element={<Register />} />
 
         {/*Page Routing (with navbar)*/}
-        <Route element={<Layout logout={logout} userRole={userRole} />}>
-          {/* Staff-only route */}
+        <Route element={<Layout logout={logout} userRole={userRole} isAdmin={isAdmin} />}>
+          {/* Admin Dashboard */}
+          <Route path="/dashboard" element={
+            <RouteProtection allowedRole="staff" requireAdmin={true}>
+              <Dashboard />
+            </RouteProtection>
+          } />          {/* Admin-only route */}
           <Route path="/book_management" element={
-            <RouteProtection allowedRole="staff">
+            <RouteProtection allowedRole="staff" requireAdmin={true}>
               <BookManagement openModal={openModal} books={books} setBooks={setBooks} />
+            </RouteProtection>
+          } />
+
+          {/* User Management - Admin only */}
+          <Route path="/user_management" element={
+            <RouteProtection allowedRole="staff" requireAdmin={true}>
+              <UserManagement />
             </RouteProtection>
           } />
 
@@ -158,7 +184,12 @@ function App() {
             <RouteProtection allowedRole="staff">
               <BorrowingActivities />
             </RouteProtection>
+          } />
 
+          <Route path="/walk_in_borrowing" element={
+            <RouteProtection allowedRole="staff">
+              <WalkInBorrowing />
+            </RouteProtection>
           } />
 
         </Route>

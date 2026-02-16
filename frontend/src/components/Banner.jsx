@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-function Banner() {
+function Banner({ isAdmin }) {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [userName, setUserName] = useState('');
   const [userRole, setUserRole] = useState('');
@@ -60,14 +60,14 @@ function Banner() {
   };
 
   return (
-    <div className='bg-white text-red-600 px-8 py-4 shadow-md'>
+    <div className='fixed top-0 left-60 right-0 bg-white text-red-600 px-8 py-4 shadow-md z-40'>
       <div className='flex justify-between items-center'>
         <div className='flex items-center gap-3'>
           <h2 className='text-2xl font-bold'>
             Welcome, {userName}!
           </h2>
           <span className='text-sm bg-red-500/20 px-3 py-1 rounded-full capitalize'>
-            {userRole}
+            { isAdmin ? 'Admin' : userRole}
           </span>
         </div>
         

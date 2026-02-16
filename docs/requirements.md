@@ -4,8 +4,9 @@
     Many libraries still manage books and records manually which can lead to problems such as lost books, incorrect or inconsistent records, slow transactions, and the dificulty of tracking borrowed and returned books. Librarians also spend a lot of time managing records while the users expireince delays when trying to borrow and search for books. A library system is created to make managing books, members, borrowing and returns much faster, more organized and more accurate through the digital system.
 
 2. User Personas
-    2.1 Staff
-    2.2 Customer
+    2.1 Admin
+    2.2 Staff
+    2.3 Customer
 
 3. User Stories (minimum 6)
     3.1 As a customer, it takes too long to find books that I like.

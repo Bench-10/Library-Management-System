@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react'
-import axios from 'axios'
+import api from '../../api/axios';
 
 function ReturnBookModal({ isOpen, onClose, loan, onReturnSuccess }) {
   const [rating, setRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
+  const [bookCondition, setBookCondition] = useState('Good');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -11,23 +12,24 @@ function ReturnBookModal({ isOpen, onClose, loan, onReturnSuccess }) {
     if (isOpen) {
       setRating(loan?.rating || 0);
       setHoveredRating(0);
+      setBookCondition('Good'); // Default to 'Good'
       setError('');
     }
   }, [isOpen, loan]);
 
   if (!isOpen || !loan) return null;
-
   const handleReturn = async () => {
     setIsLoading(true);
     setError('');
 
     try {
-      const response = await axios.put(
-        `http://localhost:3000/api/loans/return/${loan.loan_id}`,
+      const response = await api.put(
+        `/loans/return/${loan.loan_id}`,
         {
           bookId: loan.book_id,
           rating: rating > 0 ? rating : null,
-          copiesBorrowed: loan.copies_borrowed
+          copiesBorrowed: loan.copies_borrowed,
+          bookCondition: bookCondition
         }
       );
 
@@ -78,51 +80,70 @@ function ReturnBookModal({ isOpen, onClose, loan, onReturnSuccess }) {
     <div      className='fixed inset-0 bg-black/40 bg-opacity-50 flex items-center justify-center z-50 animate-fadeIn'
       onClick={handleBackdropClick}
     >
-      <div className='bg-white rounded-lg  p-8 max-w-lg w-full mx-4 animate-slideUp'>
+      <div className='bg-white rounded-lg p-6 max-w-lg w-full mx-4 animate-slideUp'>
         {/* Header */}
-        <h2 className='text-2xl font-bold mb-6 text-center'>
-          Loan ID: <span className='text-red-600'>#{loan.loan_id}</span>
-        </h2>
-
-        {/* Information Section - Two Columns */}
-        <div className='mb-6 grid grid-cols-2 gap-x-8 gap-y-3'>
-          <div>
-            <span className='text-gray-700'>Book ID: </span>
-            <span className='text-red-600 font-semibold'>{loan.book_id}</span>
-          </div>
-          <div>
-            <span className='text-gray-700'>Borrower: </span>
-            <span className='text-red-600 font-semibold'>{loan.borrower_name}</span>
-          </div>
-          <div>
-            <span className='text-gray-700'>Author: </span>
-            <span className='text-red-600 font-semibold'>{loan.author}</span>
-          </div>
-          <div>
-            <span className='text-gray-700'>Copies: </span>
-            <span className='text-red-600 font-semibold'>{loan.copies_borrowed}</span>
-          </div>
-          <div>
-            <span className='text-gray-700'>Borrowed Date: </span>
-            <span className='text-red-600 font-semibold'>{loan.loan_date}</span>
-          </div>
-          <div>
-            <span className='text-gray-700'>Expected Return Date: </span>
-            <span className='text-red-600 font-semibold'>{loan.expected_return_date}</span>
-          </div>
-          <div className='col-span-2'>
-            <span className='text-gray-700'>Status: </span>
-            <span className='px-3 py-1 bg-blue-600 text-white rounded-full text-sm font-semibold'>
-              {loan.status}
-            </span>
-          </div>
-          <div className='col-span-2'>
-            <span className='text-gray-700'>Fine: </span>
-            <span className='text-red-600 font-semibold'>Php {parseFloat(loan.fine_amount || 0).toFixed(2)}</span>
-          </div>
+        <div className='text-center mb-6'>
+          <h2 className='text-2xl font-bold text-gray-800 mb-2'>
+            Loan Details
+          </h2>
+          <span className='text-lg font-semibold text-red-600'>#{loan.loan_id}</span>
         </div>
 
-        {/* Rating Section */}
+        {/* Information Grid */}
+        <div className='space-y-4 mb-6'>
+          <div className='grid grid-cols-2 gap-4'>
+            <div>
+              <span className='text-gray-600 text-sm'>Book ID:</span>
+              <div className='font-semibold'>{loan.book_id}</div>
+            </div>
+            <div>
+              <span className='text-gray-600 text-sm'>Borrower:</span>
+              <div className='font-semibold'>{loan.borrower_name}</div>
+            </div>
+          </div>
+          
+          <div className='grid grid-cols-2 gap-4'>
+            <div>
+              <span className='text-gray-600 text-sm'>Author:</span>
+              <div className='font-semibold'>{loan.author}</div>
+            </div>
+            <div>
+              <span className='text-gray-600 text-sm'>Cell Number:</span>
+              <div className='font-semibold'>{loan.contact_number}</div>
+            </div>
+          </div>
+          
+          <div className='grid grid-cols-2 gap-4'>
+            <div>
+              <span className='text-gray-600 text-sm'>Copies:</span>
+              <div className='font-semibold'>{loan.copies_borrowed}</div>
+            </div>
+            <div>
+              <span className='text-gray-600 text-sm'>Borrowed Date:</span>
+              <div className='font-semibold'>{loan.loan_date}</div>
+            </div>
+          </div>
+          
+          <div className='grid grid-cols-2 gap-4'>
+            <div>
+              <span className='text-gray-600 text-sm'>Expected Return:</span>
+              <div className='font-semibold'>{loan.expected_return_date}</div>
+            </div>
+            <div>
+              <span className='text-gray-600 text-sm'>Status:</span>
+              <div>
+                <span className='px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm font-medium'>
+                  {loan.status}
+                </span>
+              </div>
+            </div>
+          </div>
+          
+          <div>
+            <span className='text-gray-600 text-sm'>Fine:</span>
+            <div className='font-semibold text-red-600'>₱ {parseFloat(loan.fine_amount || 0).toFixed(2)}</div>
+          </div>
+        </div>        {/* Rating Section */}
         <div className='mb-6 text-center'>
           <h3 className='font-semibold text-gray-700 mb-3'>Rating:</h3>
           <div className='flex justify-center gap-1'>
@@ -131,6 +152,29 @@ function ReturnBookModal({ isOpen, onClose, loan, onReturnSuccess }) {
           {rating > 0 && (
             <p className='text-sm text-gray-500 mt-2'>You rated this book {rating} star{rating !== 1 ? 's' : ''}</p>
           )}
+        </div>
+
+        {/* Book Condition Section */}
+        <div className='mb-6'>
+          <label htmlFor='bookCondition' className='block font-semibold text-gray-700 mb-2'>
+            Book Condition <span className='text-red-500'>*</span>
+          </label>
+          <select
+            id='bookCondition'
+            value={bookCondition}
+            onChange={(e) => setBookCondition(e.target.value)}
+            className='w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent'
+            required
+          >
+            <option value='Excellent'>Excellent - Like new, no damage</option>
+            <option value='Good'>Good - Minor wear, fully readable</option>
+            <option value='Fair'>Fair - Noticeable wear, some damage</option>
+            <option value='Poor'>Poor - Significant wear, pages damaged</option>
+            <option value='Damaged'>Damaged - Major damage, missing pages</option>
+          </select>
+          <p className='text-xs text-gray-500 mt-1'>
+            Please assess the condition of the book upon return
+          </p>
         </div>
 
         {/* Error Message */}

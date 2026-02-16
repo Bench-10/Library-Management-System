@@ -1,7 +1,8 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { FaSearch, FaSortUp, FaSortDown, FaSort, FaExclamationCircle, FaHeart, FaRegHeart } from "react-icons/fa";
-import axios from 'axios';
+import api from '../api/axios';
 import BorrowBookModal from '../components/modal forms/BorrowBookModal';
+import { sanitizeInput } from '../utils/sanitizeInput';
 
 function BookCatalog({ books = [], setBorrowBook, onBorrowSuccess }) {
   const [searchBooks, setSearchBooks] = useState('');
@@ -34,7 +35,7 @@ function BookCatalog({ books = [], setBorrowBook, onBorrowSuccess }) {
       
       if (!customerId) return;
 
-      const response = await axios.get(`http://localhost:3000/api/favorites/${customerId}/ids`);
+      const response = await api.get(`/favorites/${customerId}/ids`);
       setFavoriteBookIds(response.data);
     } catch (error) {
       console.error('Error fetching favorite IDs:', error);
@@ -51,7 +52,7 @@ function BookCatalog({ books = [], setBorrowBook, onBorrowSuccess }) {
         return;
       }
 
-      await axios.post('http://localhost:3000/api/favorites/toggle', {
+      await api.post('/favorites/toggle', {
         customerId,
         bookId
       });
@@ -156,7 +157,7 @@ function BookCatalog({ books = [], setBorrowBook, onBorrowSuccess }) {
               type="text"
               placeholder="Search Title, Author"
               value={searchBooks}
-              onChange={(e) => setSearchBooks(e.target.value)}
+              onChange={(e) => setSearchBooks(sanitizeInput(e.target.value))}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-red-500"
             />
           </div>
@@ -176,7 +177,9 @@ function BookCatalog({ books = [], setBorrowBook, onBorrowSuccess }) {
         </div>
 
         <div className='overflow-hidden shadow-md rounded-lg border border-gray-200'>
-          <div className='overflow-y-auto max-h-160'>            <table className='min-w-full bg-white'>              <thead className='bg-red-500 text-white sticky top-0 z-10'>
+          <div className='overflow-y-auto max-h-160'>           
+             <table className='min-w-full bg-white'>           
+               <thead className='bg-red-800 text-white sticky top-0 z-10'>
                 <tr>
                   <th className='px-3 py-4 text-center text-sm font-semibold uppercase tracking-wider w-12'>
                     {/* Icon column */}
@@ -230,18 +233,7 @@ function BookCatalog({ books = [], setBorrowBook, onBorrowSuccess }) {
                         ) : (
                           "--"
                         )}                      </td>                      <td className='px-6 py-4 text-center'>
-                        <div className='flex items-center justify-center gap-2'>
-                          <button
-                            onClick={() => toggleFavorite(book.book_id)}
-                            className='text-red-500 hover:scale-110 transition-transform duration-150'
-                            title={isFavorited(book.book_id) ? 'Remove from favorites' : 'Add to favorites'}
-                          >
-                            {isFavorited(book.book_id) ? (
-                              <FaHeart className='text-2xl' />
-                            ) : (
-                              <FaRegHeart className='text-2xl' />
-                            )}
-                          </button>
+                        <div className='flex items-center justify-center gap-14'>
                           <button
                             disabled={book.available_copies === 0}
                             onClick={() => handleBorrowClick(book)}
@@ -252,6 +244,17 @@ function BookCatalog({ books = [], setBorrowBook, onBorrowSuccess }) {
                             }`}
                           >
                             {book.available_copies === 0 ? 'Unavailable' : 'Borrow'}
+                          </button>
+                          <button
+                            onClick={() => toggleFavorite(book.book_id)}
+                            className='text-red-500 hover:scale-110 transition-transform duration-150'
+                            title={isFavorited(book.book_id) ? 'Remove from favorites' : 'Add to favorites'}
+                          >
+                            {isFavorited(book.book_id) ? (
+                              <FaHeart className='text-2xl' />
+                            ) : (
+                              <FaRegHeart className='text-2xl' />
+                            )}
                           </button>
                         </div>
                       </td>

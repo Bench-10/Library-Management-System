@@ -6,8 +6,10 @@ CREATE TABLE books (
     published_date DATE,
     total_copies INT NOT NULL,
     available_copies INT NOT NULL,
-    price DECIMAL(10, 2) NOT NULL,
-    rating DECIMAL(2, 1)
+    rating DECIMAL(2, 1),
+    is_deleted BOOLEAN DEFAULT FALSE,
+    borrow_limit INT DEFAULT 3,
+    return_days INT NOT NULL DEFAULT 5
 
 );
 
@@ -34,20 +36,38 @@ CREATE TABLE customers (
 
 );
 
+CREATE TABLE walk_in_customers (
+    walk_in_customer_id SERIAL PRIMARY KEY,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    phone VARCHAR(20) NOT NULL,
+    email VARCHAR(255),
+    address TEXT,
+    created_date DATE NOT NULL DEFAULT CURRENT_DATE
+);
 
 CREATE TABLE loans (
     loan_id SERIAL PRIMARY KEY,
     book_id INT REFERENCES books(book_id) ON DELETE RESTRICT,
     customer_id INT REFERENCES customers(customer_id),
+    walk_in_customer_id INT REFERENCES walk_in_customers(walk_in_customer_id),
     loan_date DATE NOT NULL DEFAULT CURRENT_DATE,
     expected_return_date DATE NOT NULL,
     return_date DATE,
     status VARCHAR(50) NOT NULL DEFAULT 'Borrowed',
     copies_borrowed INT NOT NULL DEFAULT 1,
     fine_amount DECIMAL(10, 2) DEFAULT 0.00,
-    rating DECIMAL(2, 1) DEFAULT NULL
+    rating DECIMAL(2, 1) DEFAULT NULL,
+    contact_number VARCHAR(20),
+    loan_type VARCHAR(20) NOT NULL DEFAULT 'Online' CHECK (loan_type IN ('Online', 'Walk-in')),
+    CONSTRAINT customer_constraint CHECK (
+        (customer_id IS NOT NULL AND walk_in_customer_id IS NULL) OR 
+        (customer_id IS NULL AND walk_in_customer_id IS NOT NULL)
+    ),
+    book_condition VARCHAR(50) DEFAULT NULL
 
 );
+
 
 
 CREATE TABLE favorites (

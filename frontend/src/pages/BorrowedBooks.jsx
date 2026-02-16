@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import axios from 'axios'
+import api from '../api/axios';
 import { FaSearch, FaSortUp, FaSortDown, FaSort } from 'react-icons/fa'
+import { sanitizeInput } from '../utils/sanitizeInput';
 
 function BorrowedBooks() {
   const [loans, setLoans] = useState([]);
@@ -20,7 +21,7 @@ function BorrowedBooks() {
       const userData = JSON.parse(localStorage.getItem('userData'));
       const customerId = userData.user.customer_id;
 
-      const response = await axios.get(`http://localhost:3000/api/loans/${customerId}`);
+      const response = await api.get(`/loans/${customerId}`);
       setLoans(response.data);
       setError('');
     } catch (error) {
@@ -116,7 +117,7 @@ function BorrowedBooks() {
             type="text"
             placeholder="Search Title"
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => setSearchTerm(sanitizeInput(e.target.value))}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
@@ -140,7 +141,7 @@ function BorrowedBooks() {
       {!isLoading && !error && (
         <div className='overflow-hidden shadow-md rounded-lg border border-gray-200'>
           <div className='overflow-y-auto max-h-160'>            <table className='min-w-full bg-white'>
-              <thead className='bg-red-500 text-white sticky top-0 z-10'>
+              <thead className='bg-red-800 text-white sticky top-0 z-10'>
                 <tr>
                   <th 
                     className='px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider cursor-pointer hover:bg-red-600 transition-colors'
@@ -176,7 +177,7 @@ function BorrowedBooks() {
                       <td className='px-6 py-4 text-sm text-gray-700'>{loan.expected_return_date}</td>
                       <td className='px-6 py-4 text-sm text-gray-900 text-center font-semibold'>{loan.copies_borrowed}</td>
                       <td className='px-6 py-4 text-center'>
-                        <span className='px-4 py-2 bg-blue-600 text-white rounded-full text-sm font-semibold'>
+                        <span className={`px-4 py-2 rounded-full  ${loan.status === 'Borrowed' ? 'bg-blue-200 text-blue-800' : loan.status === 'Returned' ? 'bg-green-200 text-green-800' : "bg-red-200 text-red-800"}   text-sm font-semibold`}>
                           {loan.status}
                         </span>
                       </td>

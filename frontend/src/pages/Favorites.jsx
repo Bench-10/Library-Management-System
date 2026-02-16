@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import axios from 'axios';
+import api from '../api/axios';
 import { FaHeart, FaSearch, FaExclamationCircle, FaSortUp, FaSortDown, FaSort } from 'react-icons/fa';
 import BorrowBookModal from '../components/modal forms/BorrowBookModal';
+import BookDeletedModal from '../components/modal forms/BookDeletedModal';
 
 function Favorites({ onBorrowSuccess }) {
   const [favorites, setFavorites] = useState([]);
@@ -11,7 +12,9 @@ function Favorites({ onBorrowSuccess }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [isBorrowModalOpen, setIsBorrowModalOpen] = useState(false);
+  const [isBookDeletedModalOpen, setIsBookDeletedModalOpen] = useState(false);
   const [selectedBook, setSelectedBook] = useState(null);
+  const [isCheckingBook, setIsCheckingBook] = useState(false);
 
   useEffect(() => {
     fetchFavorites();
@@ -28,7 +31,7 @@ function Favorites({ onBorrowSuccess }) {
         return;
       }
 
-      const response = await axios.get(`http://localhost:3000/api/favorites/${customerId}`);
+      const response = await api.get(`/favorites/${customerId}`);
       setFavorites(response.data);
       setError('');
     } catch (error) {
@@ -44,7 +47,7 @@ function Favorites({ onBorrowSuccess }) {
       const userData = JSON.parse(localStorage.getItem('userData'));
       const customerId = userData?.user?.customer_id;
 
-      await axios.delete('http://localhost:3000/api/favorites/remove', {
+      await api.delete('/favorites/remove', {
         data: { customerId, bookId }
       });
 
@@ -122,9 +125,36 @@ function Favorites({ onBorrowSuccess }) {
     return filtered;
   }, [favorites, searchTerm, sortConfig]);
 
-  const handleBorrowClick = (book) => {
-    setSelectedBook(book);
-    setIsBorrowModalOpen(true);
+  const handleBorrowClick = async (book) => {
+    setIsCheckingBook(true);
+    
+    try {
+      // Check current book status including deletion status
+      const response = await api.get(`/books/${book.book_id}`);
+      const bookStatus = response.data;
+      
+      if (bookStatus.is_deleted) {
+        // Book is deleted, show deleted modal
+        setSelectedBook(book);
+        setIsBookDeletedModalOpen(true);
+      } else {
+        // Book is available, proceed with borrow modal
+        setSelectedBook(book);
+        setIsBorrowModalOpen(true);
+      }
+    } catch (error) {
+      console.error('Error checking book status:', error);
+      
+      if (error.response?.status === 404) {
+        // Book not found, likely deleted
+        setSelectedBook(book);
+        setIsBookDeletedModalOpen(true);
+      } else {
+        alert('Error checking book status. Please try again.');
+      }
+    } finally {
+      setIsCheckingBook(false);
+    }
   };
 
   return (
@@ -137,6 +167,12 @@ function Favorites({ onBorrowSuccess }) {
           onBorrowSuccess?.();
           fetchFavorites(); // Refresh to update available copies
         }}
+      />
+
+      <BookDeletedModal 
+        isOpen={isBookDeletedModalOpen}
+        onClose={() => setIsBookDeletedModalOpen(false)}
+        bookTitle={selectedBook?.title || ''}
       />
 
       <div className='p-8'>
@@ -202,7 +238,7 @@ function Favorites({ onBorrowSuccess }) {
           <div className='overflow-hidden shadow-md rounded-lg border border-gray-200'>
             <div className='overflow-y-auto max-h-160'>
               <table className='min-w-full bg-white'>
-                <thead className='bg-red-500 text-white sticky top-0 z-10'>
+                <thead className='bg-red-800 text-white sticky top-0 z-10'>
                   <tr>
                     <th className='px-3 py-4 text-center text-sm font-semibold uppercase tracking-wider w-12'>
                       {/* Icon column */}
@@ -223,12 +259,6 @@ function Favorites({ onBorrowSuccess }) {
                     <th className='px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider'>Genre</th>
                     <th className='px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider'>Available Copies</th>
                     <th className='px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider'>Rating</th>
-                    <th 
-                      className='px-6 py-4 text-center text-sm font-semibold uppercase tracking-wider cursor-pointer hover:bg-red-600 transition-colors'
-                      onClick={() => handleSort('added_date')}
-                    >
-                      Date Added {getSortIcon('added_date')}
-                    </th>
                     <th className='px-6 py-4 text-center text-sm font-semibold uppercase tracking-wider'>Actions</th>
                   </tr>
                 </thead>
@@ -264,19 +294,18 @@ function Favorites({ onBorrowSuccess }) {
                             "--"
                           )}
                         </td>
-                        <td className='px-6 py-4 text-sm text-gray-700 text-center'>{fav.added_date}</td>
                         <td className='px-6 py-4 text-center'>
-                          <div className='flex items-center justify-center gap-2'>
+                          <div className='flex items-center justify-center gap-14'>
                             <button
-                              disabled={fav.available_copies === 0}
+                              disabled={fav.available_copies === 0 || isCheckingBook}
                               onClick={() => handleBorrowClick(fav)}
                               className={`px-3 py-1 rounded font-semibold transition-colors duration-150 text-sm ${
-                                fav.available_copies === 0
+                                fav.available_copies === 0 || isCheckingBook
                                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                   : 'bg-red-500 text-white hover:bg-red-600'
                               }`}
                             >
-                              {fav.available_copies === 0 ? 'Unavailable' : 'Borrow'}
+                              {isCheckingBook ? 'Checking...' : fav.available_copies === 0 ? 'Unavailable' : 'Borrow'}
                             </button>
                             <button
                               onClick={() => handleRemoveFavorite(fav.book_id)}

@@ -62,7 +62,6 @@ export const getCustomerFavorites = async (customerId) => {
          b.total_copies,
          b.available_copies,
          b.rating,
-         b.price,
          TO_CHAR(f.added_date, 'Mon DD, YYYY HH12:MI AM') as added_date
        FROM favorites f
        JOIN books b ON f.book_id = b.book_id

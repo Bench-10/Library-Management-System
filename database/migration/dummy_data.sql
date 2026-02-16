@@ -1,39 +1,82 @@
-INSERT INTO books (title, author, genre, published_date, total_copies, available_copies, price, rating) VALUES
-('The Great Gatsby', 'F. Scott Fitzgerald', 'Classic', '1925-04-10', 10, 6, 299.99, 4.5),
-('To Kill a Mockingbird', 'Harper Lee', 'Fiction', '1960-07-11', 8, 3, 249.50, 4.8),
-('1984', 'George Orwell', 'Dystopian', '1949-06-08', 12, 7, 199.00, 4.6),
-('Pride and Prejudice', 'Jane Austen', 'Romance', '1813-01-28', 7, 2, 179.99, 4.4),
-('The Hobbit', 'J.R.R. Tolkien', 'Fantasy', '1937-09-21', 15, 10, 349.00, 4.9),
-('Harry Potter and the Sorcerer''s Stone', 'J.K. Rowling', 'Fantasy', '1997-06-26', 20, 14, 399.00, 4.9),
-('The Catcher in the Rye', 'J.D. Salinger', 'Fiction', '1951-07-16', 6, 1, 219.99, 4.0),
-('The Alchemist', 'Paulo Coelho', 'Philosophy', '1988-01-01', 9, 5, 199.99, 4.3),
-('Atomic Habits', 'James Clear', 'Self-Help', '2018-10-16', 18, 12, 499.00, 4.7),
-('Clean Code', 'Robert C. Martin', 'Programming', '2008-08-01', 5, 2, 899.99, 4.8);
+INSERT INTO books (title, author, genre, published_date, total_copies, available_copies, rating)
+VALUES
+('The Silent Patient', 'Alex Michaelides', 'Thriller', '2019-02-05', 10, 10, 4.5),
+('Atomic Habits', 'James Clear', 'Self-help', '2018-10-16', 15, 15, 4.8),
+('1984', 'George Orwell', 'Dystopian', '1949-06-08', 8, 8, 4.6),
+('The Hobbit', 'J.R.R. Tolkien', 'Fantasy', '1937-09-21', 12, 12, 4.7),
+('Dune', 'Frank Herbert', 'Sci-Fi', '1965-08-01', 10, 10, 4.4),
+('The Alchemist', 'Paulo Coelho', 'Fiction', '1988-01-01', 14, 14, 4.2),
+('Clean Code', 'Robert C. Martin', 'Programming', '2008-08-01', 6, 6, 4.9),
+('Sapiens', 'Yuval Noah Harari', 'History', '2011-01-01', 9, 9, 4.7),
+('Harry Potter 1', 'J.K. Rowling', 'Fantasy', '1997-06-26', 20, 20, 4.8),
+('Rich Dad Poor Dad', 'Robert Kiyosaki', 'Finance', '1997-04-01', 11, 11, 4.1);
+
+
+INSERT INTO staff (email, password, first_name, last_name, is_admin)
+VALUES
+('admin@library.com', 'admin123', 'Alice', 'Admin', TRUE),
+('john@library.com', 'john123', 'John', 'Doe', FALSE),
+('mary@library.com', 'mary123', 'Mary', 'Smith', FALSE),
+('peter@library.com', 'peter123', 'Peter', 'Brown', FALSE),
+('lisa@library.com', 'lisa123', 'Lisa', 'White', FALSE);
+
+
+INSERT INTO customers (first_name, last_name, email, password, phone, address)
+VALUES
+('Mark', 'Taylor', 'mark@mail.com', 'pass1', '0911111111', 'Manila'),
+('Sarah', 'Connor', 'sarah@mail.com', 'pass2', '0922222222', 'Cebu'),
+('David', 'Lee', 'david@mail.com', 'pass3', '0933333333', 'Davao'),
+('Emma', 'Stone', 'emma@mail.com', 'pass4', '0944444444', 'Baguio'),
+('Chris', 'Evans', 'chris@mail.com', 'pass5', '0955555555', 'Quezon City');
+
+
+INSERT INTO walk_in_customers (first_name, last_name, phone, email, address)
+VALUES
+('Juan', 'Dela Cruz', '0900000001', NULL, 'Manila'),
+('Ana', 'Reyes', '0900000002', NULL, 'Cavite'),
+('Luis', 'Santos', '0900000003', NULL, 'Laguna'),
+('Maria', 'Lopez', '0900000004', NULL, 'Batangas'),
+('Jose', 'Ramos', '0900000005', NULL, 'Pampanga'),
+('Paolo', 'Garcia', '0900000006', NULL, 'Bulacan'),
+('Nina', 'Torres', '0900000007', NULL, 'Rizal'),
+('Leo', 'Mendoza', '0900000008', NULL, 'Taguig'),
+('Karla', 'Flores', '0900000009', NULL, 'Pasig'),
+('Ryan', 'Lim', '0900000010', NULL, 'Makati');
+
+
+INSERT INTO loans
+(book_id, customer_id, walk_in_customer_id, expected_return_date, status, copies_borrowed, loan_type, contact_number)
+VALUES
+-- ONLINE LOANS
+(1, 1, NULL, CURRENT_DATE + INTERVAL '7 days', 'Borrowed', 1, 'Online', '0911111111'),
+(2, 2, NULL, CURRENT_DATE + INTERVAL '7 days', 'Borrowed', 1, 'Online', '0922222222'),
+(3, 3, NULL, CURRENT_DATE + INTERVAL '7 days', 'Returned', 1, 'Online', '0933333333'),
+(4, 4, NULL, CURRENT_DATE + INTERVAL '7 days', 'Borrowed', 1, 'Online', '0944444444'),
+(5, 5, NULL, CURRENT_DATE + INTERVAL '7 days', 'Returned', 1, 'Online', '0955555555'),
+
+-- WALK-IN LOANS
+(6, NULL, 1, CURRENT_DATE + INTERVAL '5 days', 'Borrowed', 1, 'Walk-in', '0900000001'),
+(7, NULL, 2, CURRENT_DATE + INTERVAL '5 days', 'Returned', 1, 'Walk-in', '0900000002'),
+(8, NULL, 3, CURRENT_DATE + INTERVAL '5 days', 'Borrowed', 1, 'Walk-in', '0900000003'),
+(9, NULL, 4, CURRENT_DATE + INTERVAL '5 days', 'Borrowed', 1, 'Walk-in', '0900000004'),
+(10, NULL, 5, CURRENT_DATE + INTERVAL '5 days', 'Returned', 1, 'Walk-in', '0900000005');
 
 
 
-INSERT INTO staff (email, password, first_name, last_name, is_admin) VALUES
-('john_staff@gmail.com', 'pass123', 'John', 'Doe', FALSE),
-('emma_staff@gmail.com', 'pass456', 'Emma', 'Smith', FALSE),
-('admin_user@gmail.com', 'admin789', 'Alice', 'Admin', TRUE);
+INSERT INTO favorites (customer_id, book_id)
+VALUES
+(1, 1),
+(1, 2),
+(2, 3),
+(2, 4),
+(3, 5),
+(3, 6),
+(4, 7),
+(4, 8),
+(5, 9),
+(5, 10);
 
 
 
-INSERT INTO customers (first_name, last_name, email, password, phone, address) VALUES
-('Michael', 'Brown', 'michael.brown@email.com', 'cust123', '9876543210', '123 Main Street, NY'),
-('Sarah', 'Johnson', 'sarah.johnson@email.com', 'cust456', '9123456780', '45 Park Avenue, CA'),
-('David', 'Wilson', 'david.wilson@email.com', 'cust789', '9988776655', '78 Elm Road, TX');
 
 
-
-INSERT INTO loans (book_id, customer_id, loan_date, return_date, status, fine_amount) VALUES
-(1, 1, '2025-01-01', '2025-01-10', 'Returned', 0.00),
-(2, 2, '2025-01-05', NULL, 'Borrowed', 0.00),
-(3, 3, '2025-01-07', NULL, 'Borrowed', 0.00),
-(4, 1, '2025-01-08', '2025-01-18', 'Returned', 10.00),
-(5, 2, '2025-01-10', NULL, 'Borrowed', 0.00),
-(6, 3, '2025-01-12', '2025-01-22', 'Returned', 0.00),
-(7, 1, '2025-01-15', NULL, 'Borrowed', 5.00),
-(8, 2, '2025-01-16', '2025-01-25', 'Returned', 0.00),
-(9, 3, '2025-01-18', NULL, 'Borrowed', 0.00),
-(10, 1, '2025-01-20', NULL, 'Borrowed', 0.00);

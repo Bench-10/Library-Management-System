@@ -1,18 +1,21 @@
 import React, { useEffect, useRef, useState } from 'react'
-import axios from 'axios'
+import api from '../../api/axios';
+import { sanitizeInput } from '../../utils/sanitizeInput'
+import CannotReduceCopies from '../pop-up modals/CannotReduceCopies'
 
-function BookManageModal({ isModalOpen, onClose, mode = 'add', setBooks, bookToEdit = null}) {
-  const [formData, setFormData] = useState({
+function BookManageModal({ isModalOpen, onClose, mode = 'add', setBooks, bookToEdit = null}) {  const [formData, setFormData] = useState({
     title: '',
     genre: '',
     copies: '',
     author: '',
     publishDate: '',
-    price: ''
+    borrowLimit: 3,
+    returnDays: 5
   })
   const [errors, setErrors] = useState({})
   const [isSaving, setIsSaving] = useState(false)
   const firstInputRef = useRef(null)
+  const [showCannotDeleteModal, setShowCannotDeleteModal] = useState(false)
 
   useEffect(() => {
     if (isModalOpen) {
@@ -24,11 +27,12 @@ function BookManageModal({ isModalOpen, onClose, mode = 'add', setBooks, bookToE
           copies: bookToEdit.total_copies || '',
           author: bookToEdit.author || '',
           publishDate: bookToEdit.published_date ? convertDateForInput(bookToEdit.published_date) : '',
-          price: bookToEdit.price || ''
+          borrowLimit: bookToEdit.borrow_limit || 3,
+          returnDays: bookToEdit.return_days || 5
         })
       } else {
         // Clear form for adding new book
-        setFormData({ title: '', genre: '', copies: '', author: '', publishDate: '', price: '' })
+        setFormData({ title: '', genre: '', copies: '', author: '', publishDate: '', borrowLimit: 3, returnDays: 5 })
       }
       setErrors({})
       setTimeout(() => firstInputRef.current?.focus(), 0)
@@ -55,16 +59,26 @@ function BookManageModal({ isModalOpen, onClose, mode = 'add', setBooks, bookToE
     if (isModalOpen) window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
   }, [isModalOpen, onClose])
-
   const handleChange = (e) => {
     const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
+
+    // Don't sanitize date fields or numeric fields as it breaks the format
+    const sanitizedValue = (name === 'publishDate' || name === 'copies' || name === 'borrowLimit' || name === 'returnDays') 
+      ? value 
+      : (typeof value === 'string' ? sanitizeInput(value) : value);
+    
+    setFormData((prev) => ({ ...prev, [name]: sanitizedValue }))
   }
 
   const validate = () => {
     const err = {}
     if (!formData.title.trim()) err.title = 'Title is required'
     if (!formData.author.trim()) err.author = 'Author is required'
+    if (!formData.genre.trim()) err.genre = 'Genre is required'
+    if (!formData.publishDate.trim()) err.publishDate = 'Publish date is required'
+    if (!formData.copies || parseInt(formData.copies) < 1) err.copies = 'Number of copies must be at least 1'
+    if (!formData.borrowLimit || parseInt(formData.borrowLimit) < 1) err.borrowLimit = 'Borrow limit must be at least 1'
+    if (!formData.returnDays || parseInt(formData.returnDays) < 1) err.returnDays = 'Return days must be at least 1'
     return err
   }
   const handleSubmit = async (e) => {
@@ -77,14 +91,14 @@ function BookManageModal({ isModalOpen, onClose, mode = 'add', setBooks, bookToE
     setIsSaving(true)
     try {
       if (mode === 'add') {
-        const response = await axios.post('http://localhost:3000/api/books', formData);
+        const response = await api.post('/books', formData);
         console.log('Book added successfully')
         console.log(response.data)
 
         // The backend returns { message: "Book added successfully", data: bookObject }
         setBooks((prevBooks) => [...prevBooks, response.data.data]);
       } else if (mode === 'edit') {
-        const response = await axios.put(`http://localhost:3000/api/books/${bookToEdit.book_id}`, formData);
+        const response = await api.put(`/books/${bookToEdit.book_id}`, formData);
         console.log('Book updated successfully')
         console.log(response.data)
 
@@ -98,6 +112,13 @@ function BookManageModal({ isModalOpen, onClose, mode = 'add', setBooks, bookToE
       onClose?.()
     } catch (err) {
       console.error(err)
+
+      // Check for specific error message from backend about borrowed copies exceeding total copies
+      if (err.response?.data?.message === 'Cannot update book. There are more borrowed copies than the new total copies.') {
+        setShowCannotDeleteModal(true);
+      }
+
+     
       setErrors({ form: `Failed to ${mode === 'add' ? 'add' : 'update'} book. Try again.` })
     } finally {
       setIsSaving(false)
@@ -107,6 +128,13 @@ function BookManageModal({ isModalOpen, onClose, mode = 'add', setBooks, bookToE
 
   return (
     <div className='fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 animate-fadeIn' onClick={() => onClose?.()}>
+
+      <div>
+        <CannotReduceCopies 
+          isOpen={showCannotDeleteModal} 
+          onClose={() => setShowCannotDeleteModal(false)} 
+        />
+      </div>
       <div className='bg-white rounded-lg shadow-xl w-full max-w-3xl p-6 transform transition-all duration-300 animate-slideUp' onClick={(e) => e.stopPropagation()}>
         <div className='flex items-start justify-between mb-4'>
           <h2 className='text-2xl font-semibold'>{mode === 'add' ? 'Add New Book' : 'Edit Book'}</h2>
@@ -139,7 +167,14 @@ function BookManageModal({ isModalOpen, onClose, mode = 'add', setBooks, bookToE
                 <option value='Fiction'>Fiction</option>
                 <option value='Fantasy'>Fantasy</option>
                 <option value='History'>History</option>
+                <option value='Science'>Science</option>
+                <option value='Biography'>Biography</option>
+                <option value='Romance'>Romance</option>
+                <option value='Mystery'>Mystery</option>
+                <option value='Horror'>Horror</option>
+                <option value='Self-Help'>Self-Help</option>
               </select>
+              {errors.genre && <p className='mt-1 text-sm text-red-600'>{errors.genre}</p>}
             </div>
 
 
@@ -152,16 +187,46 @@ function BookManageModal({ isModalOpen, onClose, mode = 'add', setBooks, bookToE
             <div>
               <label htmlFor='publishDate' className='block text-sm font-medium text-gray-700'>Publish Date</label>
               <input id='publishDate' name='publishDate' type='date' value={formData.publishDate} onChange={handleChange} className='mt-1 block w-full rounded-md border border-gray-300 p-2' />
-            </div>
-
-            <div>
+              {errors.publishDate && <p className='mt-1 text-sm text-red-600'>{errors.publishDate}</p>}
+            </div>            <div>
               <label htmlFor='copies' className='block text-sm font-medium text-gray-700'>Copies</label>
-              <input id='copies' name='copies' type='number' value={formData.copies} onChange={handleChange} className='mt-1 block w-full rounded-md border border-gray-300 p-2' />
+              <input id='copies' name='copies' type='number' min='1' value={formData.copies} onChange={handleChange} className='mt-1 block w-full rounded-md border border-gray-300 p-2' />
+              {errors.copies && <p className='mt-1 text-sm text-red-600'>{errors.copies}</p>}
             </div>
 
             <div>
-              <label htmlFor='price' className='block text-sm font-medium text-gray-700'>Price</label>
-              <input id='price' name='price' type='number' step='0.01' value={formData.price} onChange={handleChange} className='mt-1 block w-full rounded-md border border-gray-300 p-2' />
+              <label htmlFor='borrowLimit' className='block text-sm font-medium text-gray-700'>
+                Max Borrow Limit
+                <span className='ml-2 text-xs text-gray-500'>(per transaction)</span>
+              </label>
+              <input 
+                id='borrowLimit' 
+                name='borrowLimit' 
+                type='number' 
+                min='1' 
+                max='10'
+                value={formData.borrowLimit} 
+                onChange={handleChange} 
+                className='mt-1 block w-full rounded-md border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-blue-500' 
+              />
+              {errors.borrowLimit && <p className='mt-1 text-sm text-red-600'>{errors.borrowLimit}</p>}
+            </div>
+
+            <div>
+              <label htmlFor='returnDays' className='block text-sm font-medium text-gray-700'>
+                Return Period (Days)
+              </label>
+              <input 
+                id='returnDays' 
+                name='returnDays' 
+                type='number' 
+                min='1' 
+                max='30'
+                value={formData.returnDays} 
+                onChange={handleChange} 
+                className='mt-1 block w-full rounded-md border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-blue-500' 
+              />
+              {errors.returnDays && <p className='mt-1 text-sm text-red-600'>{errors.returnDays}</p>}
             </div>
           </div>
 

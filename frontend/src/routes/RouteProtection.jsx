@@ -1,7 +1,7 @@
 import React from 'react'
 import { Navigate } from 'react-router-dom'
 
-function RouteProtection({ children, allowedRole }) {
+function RouteProtection({ children, allowedRole, requireAdmin = false }) {
   
   const storedUserData = localStorage.getItem('userData');
   const isLoggedIn = localStorage.getItem('isLoggedIn');
@@ -14,13 +14,23 @@ function RouteProtection({ children, allowedRole }) {
   try {
     const userData = JSON.parse(storedUserData);
     
+    // Check role access
     if (allowedRole && userData.role !== allowedRole) {
-
       if (userData.role === 'staff') {
-        return <Navigate to="/book_management" replace />;
+        // Redirect to appropriate staff page based on admin status
+        if (userData.user?.is_admin) {
+          return <Navigate to="/dashboard" replace />;
+        } else {
+          return <Navigate to="/walk_in_borrowing" replace />;
+        }
       } else {
         return <Navigate to="/book_catalog" replace />;
       }
+    }
+
+    // Check admin requirement for staff users
+    if (requireAdmin && userData.role === 'staff' && !userData.user?.is_admin) {
+      return <Navigate to="/walk_in_borrowing" replace />;
     }
 
     return children;

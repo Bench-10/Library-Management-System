@@ -25,7 +25,7 @@ function RolePick({ handleRoleSelection }) {
               
               <button
                 onClick={() => handleRoleSelection('customer')}
-                className='bg-white text-red-500 px-12 py-3 rounded-full font-bold text-lg hover:bg-gray-100 transition-colors duration-200 shadow-lg'
+                className='bg-white text-red-500 px-12 py-3 rounded-full font-bold text-lg hover:bg-gray-100 transition-colors duration-200 shadow-lg mb-4'
               >
                 Customer
               </button>

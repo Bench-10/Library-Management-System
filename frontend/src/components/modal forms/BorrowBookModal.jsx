@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import axios from 'axios'
+import api from '../../api/axios';
 
 function BorrowBookModal({ isOpen, onClose, book, onBorrowSuccess }) {
   const [quantity, setQuantity] = useState(1);
@@ -33,7 +33,7 @@ function BorrowBookModal({ isOpen, onClose, book, onBorrowSuccess }) {
       const userData = JSON.parse(localStorage.getItem('userData'));
       const customerId = userData.user.customer_id;
 
-      const response = await axios.post('http://localhost:3000/api/borrow', {
+      const response = await api.post('/borrow', {
         bookId: book.book_id,
         customerId: customerId,
         copiesToBorrow: quantity

@@ -44,9 +44,6 @@ function DeleteBookModal({ isOpen, onClose, onConfirm, bookTitle, isDeleting }) 
             <p className='text-sm text-gray-600 mb-1'>Book Title:</p>
             <p className='text-lg font-semibold text-gray-900'>{bookTitle}</p>
           </div>          
-          <div className='text-sm text-gray-400'>
-           <p>* Cannot delete a book that is currently borrowed</p>
-          </div>
         </div>
 
         {/* Footer */}

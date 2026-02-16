@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import axios from 'axios'
-import { FaSearch, FaSortUp, FaSortDown, FaSort } from 'react-icons/fa'
+import api from '../api/axios';
+import { FaSearch, FaSortUp, FaSortDown, FaSort, FaUserPlus, FaGlobe } from 'react-icons/fa'
 import ReturnBookModal from '../components/modal forms/ReturnBookModal'
 import BorrowHistoryModal from '../components/modal forms/BorrowHistoryModal'
+import { sanitizeInput } from '../utils/sanitizeInput'
 
 function BorrowingActivities() {
   const [loans, setLoans] = useState([]);
@@ -18,11 +19,10 @@ function BorrowingActivities() {
   useEffect(() => {
     fetchAllLoans();
   }, []);
-
   const fetchAllLoans = async () => {
     try {
       setIsLoading(true);
-      const response = await axios.get('http://localhost:3000/api/loans');
+      const response = await api.get('/loans'); // Use relative URL to use baseURL and interceptor
       setLoans(response.data);
       setError('');
     } catch (error) {
@@ -60,7 +60,8 @@ function BorrowingActivities() {
       // Only show "Borrowed" status loans (hide "Returned" loans)
       const isBorrowed = loan.status === 'Borrowed';
       const matchesSearch = !searchTerm || 
-        loan.book_title?.toLowerCase().includes(searchTerm.toLowerCase());
+        loan.book_title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        loan.borrower_name?.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesDate = !filterDate || loan.loan_date === filterDate;
       return isBorrowed && matchesSearch && matchesDate;
     });
@@ -153,7 +154,7 @@ function BorrowingActivities() {
             type="text"
             placeholder="Search, Title"
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => setSearchTerm(sanitizeInput(e.target.value))}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
@@ -177,7 +178,7 @@ function BorrowingActivities() {
       {!isLoading && !error && (
         <div className='overflow-hidden shadow-md rounded-lg border border-gray-200'>
           <div className='overflow-y-auto max-h-160'>            <table className='min-w-full bg-white'>
-              <thead className='bg-red-500 text-white sticky top-0 z-10'>
+              <thead className='bg-red-800 text-white sticky top-0 z-10'>
                 <tr>
                   <th 
                     className='px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider cursor-pointer hover:bg-red-600 transition-colors'
@@ -192,6 +193,7 @@ function BorrowingActivities() {
                     Book Title {getSortIcon('book_title')}
                   </th>
                   <th className='px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider'>Borrower</th>
+                  <th className='px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider'>Type</th>
                   <th className='px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider'>Expected Return Date</th>
                   <th className='px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider'>No. Copies Borrowed</th>
                   <th className='px-6 py-4 text-center text-sm font-semibold uppercase tracking-wider'>Status</th>
@@ -210,11 +212,24 @@ function BorrowingActivities() {
                       <td className='px-6 py-4 text-sm text-gray-900 text-center'>{loan.loan_id}</td>
                       <td className='px-6 py-4 text-sm text-gray-900 font-medium'>{loan.book_title}</td>
                       <td className='px-6 py-4 text-sm text-gray-700'>{loan.borrower_name}</td>
+                      <td className='px-6 py-4 text-sm'>
+                        <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium ${
+                          loan.loan_type === 'Walk-in' 
+                            ? 'bg-blue-100 text-blue-800' 
+                            : 'bg-green-100 text-green-800'
+                        }`}>
+                          {loan.loan_type === 'Walk-in' ? (
+                            <><FaUserPlus className='text-xs' /> Walk-in</>
+                          ) : (
+                            <><FaGlobe className='text-xs' /> Online</>
+                          )}
+                        </span>
+                      </td>
                       <td className='px-6 py-4 text-sm text-gray-700'>{loan.expected_return_date}</td>
-                      <td className='px-6 py-4 text-sm text-gray-900 text-center font-semibold'>{loan.copies_borrowed}</td>
+                      <td className='px-6 py-4 text-sm text-gray-900 text-center font-bold'>{loan.copies_borrowed}</td>
                       <td className='px-6 py-4 text-center'>
-                        <span className={`px-4 py-2 rounded-full text-sm font-semibold text-white ${
-                          loan.status === 'Borrowed' ? 'bg-blue-600' : 'bg-green-600'
+                        <span className={`px-4 py-2 rounded-full text-sm font-semibold  ${
+                          loan.status === 'Borrowed' ? 'bg-blue-200 text-blue-800' : 'bg-red-200 text-red-800'
                         }`}>
                           {loan.status}
                         </span>
@@ -223,7 +238,7 @@ function BorrowingActivities() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="6" className='px-6 py-8 text-center text-gray-500'>
+                    <td colSpan="7" className='px-6 py-8 text-center text-gray-500'>
                       No borrowing activities found
                     </td>
                   </tr>

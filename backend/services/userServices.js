@@ -1,16 +1,30 @@
 import pool from "../db.js";
 
-
 export const registerUser = async (userData) => {
-  const { username, email, password } = userData;
+  const { firstName, lastName, email, password, phone, address } = userData;
+  
   try {
-    const result =  await pool.query(`
-      INSERT INTO users ( username, email, password)
-      VALUES ($1, $2, $3) RETURNING *
-    `, [username, email, password]);
+    // Check if email already exists
+    const existingUser = await pool.query(`
+      SELECT email FROM customers WHERE email = $1
+    `, [email]);
+    
+    if (existingUser.rows.length > 0) {
+      throw new Error('Email already registered');
+    }
+    
+    // Insert new customer
+    const result = await pool.query(`
+      INSERT INTO customers (first_name, last_name, email, password, phone, address)
+      VALUES ($1, $2, $3, $4, $5, $6) 
+      RETURNING customer_id, first_name, last_name, email
+    `, [firstName, lastName, email, password, phone, address]);
+    
+    return result.rows[0];
     
   } catch (error) {
-    
+    console.error('Error registering user:', error);
+    throw error;
   }
 }
 
@@ -19,6 +33,7 @@ export const registerUser = async (userData) => {
 
 export const loginUser = async (email, password, role) => {
   try {
+    
     if (role === 'staff') {
   
       const result = await pool.query(`

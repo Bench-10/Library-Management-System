@@ -1,15 +1,19 @@
-import axios from 'axios';
-import { React, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import api from '../api/axios';
+import { React, useState, useEffect } from 'react'
+import { useNavigate, Link } from 'react-router-dom'
 import { MdOutlineArrowBackIosNew } from "react-icons/md";
+import { sanitizeInput } from '../utils/sanitizeInput';
+import { IoMdEyeOff, IoMdEye } from "react-icons/io";
 
 
-function Login({ currentLoginRole, clearRole, setUserRole }) {
+function Login({ currentLoginRole, clearRole, setUserRole, setIsAdmin }) {
   const navigate = useNavigate()
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  
 
   const validateForm = () => {
     const newErrors = {};
@@ -24,7 +28,7 @@ function Login({ currentLoginRole, clearRole, setUserRole }) {
     // Password validation
     if (!password) {
       newErrors.password = 'Password is required';
-    } else if (password.length < 6) {
+    } else if (password.length < 5) {
       newErrors.password = 'Password must be at least 6 characters long';
     }
 
@@ -52,16 +56,23 @@ function Login({ currentLoginRole, clearRole, setUserRole }) {
     if (Object.keys(formErrors).length > 0) {
       setErrors(formErrors);
       return;
-    }
+    }    setIsLoading(true);
+    setErrors({});
 
-    setIsLoading(true);
-    setErrors({});    try {
-      const result = await axios.post('http://localhost:3000/api/user/login', { 
+    try {
+      const result = await api.post('/user/login', { 
         email, 
         password, 
         role: currentLoginRole?.toLowerCase() 
-      });        if (result.status === 200) {
+      });
+
+      if (result.status === 200) {
         console.log('Login successful:', result.data);
+        
+        // Store JWT token
+        if (result.data.token) {
+          localStorage.setItem('token', result.data.token);
+        }
         
         // Store authentication data
         const userData = {
@@ -69,14 +80,25 @@ function Login({ currentLoginRole, clearRole, setUserRole }) {
           role: currentLoginRole.toLowerCase(),
           loginTime: new Date().toISOString()
         };
-        
+
         localStorage.setItem('userData', JSON.stringify(userData));
         localStorage.setItem('isLoggedIn', 'true');
         setUserRole(userData.role); // Set role in App state
         
-        // Navigate based on role
+        // Set admin status if user is staff
+        if (userData.role === 'staff' && userData.user?.is_admin) {
+          setIsAdmin(true);
+        } else {
+          setIsAdmin(false);
+        }
+        
+        // Navigate based on role and admin status
         if (userData.role === 'staff') {
-          navigate('/book_management');
+          if (userData.user?.is_admin) {
+            navigate('/dashboard');
+          } else {
+            navigate('/walk_in_borrowing');
+          }
         } else {
           navigate('/book_catalog');
         }
@@ -114,14 +136,16 @@ function Login({ currentLoginRole, clearRole, setUserRole }) {
                         }}
                         className='text-gray-500 hover:text-gray-700 flex items-center text-sm'
                     >
-                        <div className='flex justify-center align-middle '><MdOutlineArrowBackIosNew className='font-bold text-red-500'/> Back to Role Selection</div> 
+                        <div className='flex items-center justify-center'><MdOutlineArrowBackIosNew className='font-bold text-red-500'/> Back to Role Selection</div> 
                     </button>
                 </div>
                 <h1 className='text-center text-4xl font-bold mb-12 text-gray-600'>
                     Login as <span className='text-red-500'>{currentLoginRole}</span>
                 </h1>
-            </div><div className='bg-white rounded-3xl p-12 shadow-xl w-full max-w-md'>
-                {errors.form && (
+            </div>
+            <div className='bg-white rounded-3xl p-12 shadow-xl w-full max-w-md'>               
+          
+                                {errors.form && (
                   <div className='mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-md'>
                     <p className='text-red-700 text-sm font-medium'>{errors.form}</p>
                   </div>
@@ -137,7 +161,7 @@ function Login({ currentLoginRole, clearRole, setUserRole }) {
                             name='email' 
                             type='email' 
                             value={email}
-                            onChange={(e) => handleInputChange('email', e.target.value)}
+                            onChange={(e) => handleInputChange('email', sanitizeInput(e.target.value))}
                             className={`mt-1 block w-full rounded-md border p-3 focus:outline-none focus:ring-2 transition-colors ${
                                 errors.email 
                                     ? 'border-red-500 focus:ring-red-500 bg-red-50' 
@@ -147,20 +171,19 @@ function Login({ currentLoginRole, clearRole, setUserRole }) {
                         />
                         {errors.email && (
                             <p className='mt-2 text-red-600 text-sm flex items-center'>
-                                <span className='mr-1'>⚠️</span>
-                                {errors.email}
+                                *{errors.email}
                             </p>
                         )}
                     </div>
                     
-                    <div>
+                    <div className='relative'>
                         <label htmlFor='password' className='block text-sm font-medium text-red-500 mb-2'>
                             Password
                         </label>
                         <input 
                             id='password' 
                             name='password' 
-                            type='password' 
+                            type={showPassword ? 'text' : 'password'}
                             value={password}
                             onChange={(e) => handleInputChange('password', e.target.value)}
                             className={`mt-1 block w-full rounded-md border p-3 focus:outline-none focus:ring-2 transition-colors ${
@@ -172,10 +195,13 @@ function Login({ currentLoginRole, clearRole, setUserRole }) {
                         />
                         {errors.password && (
                             <p className='mt-2 text-red-600 text-sm flex items-center'>
-                                <span className='mr-1'>⚠️</span>
-                                {errors.password}
+                                *{errors.password}
                             </p>
                         )}
+
+                        <button onClick={() => setShowPassword(prev => !prev) } type='button' className='absolute mt-2 text-lg text-red-500 hover:text-red-600 font-medium top-[50%] right-5'>
+                            {showPassword  ? <IoMdEye /> : <IoMdEyeOff />}
+                        </button>
                     </div>
                     
                     <div>
@@ -202,6 +228,21 @@ function Login({ currentLoginRole, clearRole, setUserRole }) {
                         </button>
                     </div>                
                   </form>
+                  
+                  {/* Registration link for customers only */}
+                  {currentLoginRole?.toLowerCase() === 'customer' && (
+                    <div className='text-center pt-4 mt-4 border-t border-gray-200'>
+                      <p className='text-sm text-gray-600'>
+                        New customer?{' '}
+                        <Link 
+                          to="/register" 
+                          className='text-red-500 hover:text-red-600 font-medium'
+                        >
+                          Register here
+                        </Link>
+                      </p>
+                    </div>
+                  )}
             </div>
 
         </div>

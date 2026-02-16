@@ -1,21 +1,54 @@
 import React, { useMemo, useState } from 'react';
 import { FaEdit, FaTrash, FaSearch, FaSortUp, FaSortDown, FaSort, FaExclamationCircle } from "react-icons/fa";
-import axios from 'axios';
+import api from '../api/axios';
 import DeleteBookModal from '../components/modal forms/DeleteBookModal';
+import CannotDeleteBookModal from '../components/modal forms/CannotDeleteBookModal';
+import SuccessModal from '../components/modal forms/SuccessModal';
+import { sanitizeInput } from '../utils/sanitizeInput';
 
 function BookManagement({openModal, books = [], setBooks}) {
-  
-  const [searchBooks, setSearchBooks] = useState('');
+    const [searchBooks, setSearchBooks] = useState('');
   const [selectedGenre, setSelectedGenre] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: null, direction: null });
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isCannotDeleteModalOpen, setIsCannotDeleteModalOpen] = useState(false);
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
   const [bookToDelete, setBookToDelete] = useState(null);
+  const [borrowStatusInfo, setBorrowStatusInfo] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isCheckingStatus, setIsCheckingStatus] = useState(false);
 
-  // Open delete modal
-  const handleDeleteClick = (book) => {
-    setBookToDelete(book);
-    setIsDeleteModalOpen(true);
+  // Open delete modal with safety check
+  const handleDeleteClick = async (book) => {
+    setIsCheckingStatus(true);
+    
+    try {
+      // Check if book is currently borrowed before showing delete modal
+      const response = await api.get(`/books/${book.book_id}/status`);
+      const statusInfo = response.data;
+      
+      if (statusInfo.is_borrowed) {
+        // Book is currently borrowed, show cannot delete modal
+        setBorrowStatusInfo(statusInfo);
+        setIsCannotDeleteModalOpen(true);
+      } else {
+        // Book is safe to delete, show confirmation modal
+        setBookToDelete(book);
+        setIsDeleteModalOpen(true);
+      }
+    } catch (error) {
+      console.error('Error checking book status:', error);
+      let errorMessage = 'Failed to check book status. Please try again.';
+      
+      if (error.response?.status === 404) {
+        errorMessage = 'Book not found.';
+      }
+      
+      alert(errorMessage);
+    } finally {
+      setIsCheckingStatus(false);
+    }
   };
 
   // Close delete modal
@@ -26,6 +59,11 @@ function BookManagement({openModal, books = [], setBooks}) {
     }
   };
 
+  // Close cannot delete modal
+  const handleCloseCannotDeleteModal = () => {
+    setIsCannotDeleteModalOpen(false);
+    setBorrowStatusInfo(null);
+  };
   // Confirm delete book
   const handleConfirmDelete = async () => {
     if (!bookToDelete) return;
@@ -33,15 +71,18 @@ function BookManagement({openModal, books = [], setBooks}) {
     setIsDeleting(true);
 
     try {
-      await axios.delete(`http://localhost:3000/api/books/${bookToDelete.book_id}`);
+      await api.delete(`/books/${bookToDelete.book_id}`);
       
       // Remove book from local state
       setBooks((prevBooks) => prevBooks.filter(book => book.book_id !== bookToDelete.book_id));
       
-      // Close modal and show success
+      // Close delete modal
       setIsDeleteModalOpen(false);
+      
+      // Show success modal
+      setSuccessMessage(`"${bookToDelete.title}" has been successfully deleted from the library.`);
       setBookToDelete(null);
-      alert('Book deleted successfully!');
+      setIsSuccessModalOpen(true);
     } catch (error) {
       console.error('Error deleting book:', error);
       
@@ -124,8 +165,7 @@ function BookManagement({openModal, books = [], setBooks}) {
     }
 
     return filtered;
-  }, [books, searchBooks, selectedGenre, sortConfig]);
-  return (
+  }, [books, searchBooks, selectedGenre, sortConfig]);  return (
     <> 
         <DeleteBookModal 
           isOpen={isDeleteModalOpen}
@@ -135,7 +175,22 @@ function BookManagement({openModal, books = [], setBooks}) {
           isDeleting={isDeleting}
         />
 
-        <div className='p-8'><h1 className='text-3xl font-bold mb-8 text-gray-800'>  
+        <CannotDeleteBookModal 
+          isOpen={isCannotDeleteModalOpen}
+          onClose={handleCloseCannotDeleteModal}
+          bookTitle={borrowStatusInfo?.title || ''}
+          borrowerNames={borrowStatusInfo?.borrower_names || []}
+          activeLoans={borrowStatusInfo?.active_loans || 0}
+        />
+
+        <SuccessModal 
+          isOpen={isSuccessModalOpen}
+          onClose={() => setIsSuccessModalOpen(false)}
+          title="Book Deleted Successfully!"
+          message={successMessage}
+        />
+
+        <div className='p-8'><h1 className='text-3xl font-bold mb-8 text-gray-800'>
                Book Management Page
             </h1>          
             <div className='flex mb-4 justify-between items-center gap-4'>
@@ -161,7 +216,7 @@ function BookManagement({openModal, books = [], setBooks}) {
                     type="text"
                     placeholder="Search by name, author, or genre"
                     value={searchBooks}
-                    onChange={(e) => setSearchBooks(e.target.value)}
+                    onChange={(e) => setSearchBooks(sanitizeInput(e.target.value))}
                     className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-red-500"
                   />
                 </div>
@@ -175,7 +230,9 @@ function BookManagement({openModal, books = [], setBooks}) {
               
             </div>
             <div className='overflow-hidden shadow-md rounded-lg border border-gray-200'>
-               <div className='overflow-y-auto max-h-160'>                 <table className='min-w-full bg-white'>                    <thead className='bg-red-600 text-white sticky top-0 z-10'>
+               <div className='overflow-y-auto max-h-160'>                 
+                <table className='min-w-full bg-white'>                    
+                <thead className='bg-red-800 text-white sticky top-0 z-10'>
                       <tr>
                         <th className='px-3 py-4 text-center text-sm font-semibold uppercase tracking-wider w-12'>
                           {/* Icon column */}
@@ -194,8 +251,10 @@ function BookManagement({openModal, books = [], setBooks}) {
                         </th>
                         <th className='px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider'>Author</th>
                         <th className='px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider'>Genre</th>
-                        <th className='px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider'>Publish Date</th>                        <th className='px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider'>Total Copies</th>
+                        <th className='px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider'>Publish Date</th>                          <th className='px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider'>Total Copies</th>
                         <th className='px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider'>Available Copies</th>
+                        <th className='px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider'>Borrow Limit</th>
+                        <th className='px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider'>Return Days</th>
                         <th className='px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider'>Rating</th>
                         <th className='px-6 py-4 text-center text-sm font-semibold uppercase tracking-wider'>Actions</th>
                       </tr>
@@ -219,7 +278,14 @@ function BookManagement({openModal, books = [], setBooks}) {
                           <span className={`font-semibold ${book.available_copies === 0 ? 'text-red-600' : 'text-green-600'}`}>
                             {book.available_copies}
                           </span>
-                        </td>                        <td className='px-6 py-4 text-sm text-gray-900'>
+                        </td>
+                        <td className='px-6 py-4 text-sm text-gray-900 text-center'>
+                            {book.borrow_limit || 3}
+                        </td>
+                        <td className='px-6 py-4 text-sm text-gray-900 text-center'>
+                            {book.return_days || 5} {book.return_days === 1 ? 'day' : 'days'}
+                        </td>
+                        <td className='px-6 py-4 text-sm text-gray-900'>
                           {book.rating ? (
                             <span className='flex items-center gap-1'>
                               <span className='text-yellow-500'>★</span>
@@ -239,10 +305,15 @@ function BookManagement({openModal, books = [], setBooks}) {
                             </button>
                             <button 
                               onClick={() => handleDeleteClick(book)}
-                              className='hover:scale-110 transition-transform'
-                              title='Delete book'
+                              className={`hover:scale-110 transition-transform ${isCheckingStatus ? 'opacity-50 cursor-not-allowed' : ''}`}
+                              title={isCheckingStatus ? 'Checking book status...' : 'Delete book'}
+                              disabled={isCheckingStatus}
                             >
-                              <FaTrash className='text-2xl text-red-600 hover:text-red-800' />
+                              {isCheckingStatus ? (
+                                <div className="animate-spin text-2xl text-gray-400">⏳</div>
+                              ) : (
+                                <FaTrash className='text-2xl text-red-600 hover:text-red-800' />
+                              )}
                             </button>
                           </div>
                         </td>
