@@ -299,7 +299,7 @@ function Favorites({ onBorrowSuccess }) {
                             <button
                               disabled={fav.available_copies === 0 || isCheckingBook}
                               onClick={() => handleBorrowClick(fav)}
-                              className={`px-3 py-1 rounded font-semibold transition-colors duration-150 text-sm ${
+                              className={`px-4 py-2 rounded font-semibold transition-colors duration-150 text-sm w-30 ${
                                 fav.available_copies === 0 || isCheckingBook
                                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                   : 'bg-red-500 text-white hover:bg-red-600'

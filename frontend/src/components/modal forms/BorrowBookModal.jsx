@@ -23,6 +23,10 @@ function BorrowBookModal({ isOpen, onClose, book, onBorrowSuccess }) {
 
   // Calculate late fee (10 pesos per day)
   const lateFeePerDay = 10;
+  
+  // Calculate the actual maximum quantity that can be borrowed
+  // (minimum of available copies and the book's borrow limit)
+  const maxBorrowQuantity = Math.min(book.available_copies, book.borrow_limit || 3);
 
   const handleBorrow = async () => {
     setIsLoading(true);
@@ -94,10 +98,17 @@ function BorrowBookModal({ isOpen, onClose, book, onBorrowSuccess }) {
           </div>
         </div>
 
-        {/* Available Copies */}
+        {/* Available Copies and Borrow Limit */}
         <div className='text-center mb-6'>
-          <span className='text-xl font-semibold'>Available: </span>
-          <span className='text-red-600 text-3xl font-bold'>{book.available_copies}</span>
+          <div className='mb-2'>
+            <span className='text-xl font-semibold'>Available: </span>
+            <span className='text-red-600 text-3xl font-bold'>{book.available_copies}</span>
+          </div>
+          <div className='text-sm text-gray-600'>
+            <span className='font-semibold'>Max per borrow: </span>
+            <span className='text-red-600 font-bold'>{book.borrow_limit || 3}</span>
+            <span className='text-gray-500'> {book.borrow_limit === 1 ? 'copy' : 'copies'}</span>
+          </div>
         </div>
 
         {/* Quantity Input */}
@@ -109,9 +120,9 @@ function BorrowBookModal({ isOpen, onClose, book, onBorrowSuccess }) {
             <input
               type='number'
               min='1'
-              max={book.available_copies}
+              max={maxBorrowQuantity}
               value={quantity}
-              onChange={(e) => setQuantity(Math.min(Math.max(1, parseInt(e.target.value) || 1), book.available_copies))}
+              onChange={(e) => setQuantity(Math.min(Math.max(1, parseInt(e.target.value) || 1), maxBorrowQuantity))}
               className='w-20 text-center px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500'
             />
           </div>
@@ -174,6 +185,7 @@ function BorrowBookModal({ isOpen, onClose, book, onBorrowSuccess }) {
         </div>
       </div>
     </div>
+
   )
 }
 

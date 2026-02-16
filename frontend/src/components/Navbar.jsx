@@ -150,7 +150,7 @@ function Navbar({ logout, userRole, isAdmin }) {
                       to="/favorites" 
                       className={({isActive}) => 
                         isActive 
-                          ? "flex items-center gap  -3 bg-red-500 w-full py-3 px-4 font-semibold rounded-lg shadow-md transition-all duration-300" 
+                          ? "flex items-center gap-3 bg-red-500 w-full py-3 px-4 font-semibold rounded-lg shadow-md transition-all duration-300" 
                           : "flex items-center gap-3 w-full py-3 px-3 font-medium rounded-lg hover:bg-red-500 transition-all duration-300"
                       }
                     >

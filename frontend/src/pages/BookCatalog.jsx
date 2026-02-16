@@ -237,7 +237,7 @@ function BookCatalog({ books = [], setBorrowBook, onBorrowSuccess }) {
                           <button
                             disabled={book.available_copies === 0}
                             onClick={() => handleBorrowClick(book)}
-                            className={`px-4 py-2 rounded font-semibold transition-colors duration-150 ${
+                            className={`px-4 py-2 rounded font-semibold transition-colors duration-150 w-30 ${
                               book.available_copies === 0
                                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                 : 'bg-red-500 text-white hover:bg-red-600'
